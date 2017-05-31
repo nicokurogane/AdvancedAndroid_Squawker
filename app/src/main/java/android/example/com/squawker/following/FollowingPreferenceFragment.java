@@ -15,16 +15,25 @@
 */
 package android.example.com.squawker.following;
 
+import android.content.SharedPreferences;
 import android.example.com.squawker.R;
 import android.os.Bundle;
+import android.support.v7.preference.Preference;
 import android.support.v7.preference.PreferenceFragmentCompat;
+import android.support.v7.preference.PreferenceManager;
+import android.support.v7.preference.PreferenceScreen;
+import android.support.v7.preference.SwitchPreferenceCompat;
+import android.util.Log;
+import android.widget.Toast;
+
+import com.google.firebase.messaging.FirebaseMessaging;
 
 
 /**
  * Shows the list of instructors you can follow
  */
 // TODO (1) Implement onSharedPreferenceChangeListener
-public class FollowingPreferenceFragment extends PreferenceFragmentCompat {
+public class FollowingPreferenceFragment extends PreferenceFragmentCompat implements SharedPreferences.OnSharedPreferenceChangeListener {
 
     private final static String LOG_TAG = FollowingPreferenceFragment.class.getSimpleName();
 
@@ -44,5 +53,48 @@ public class FollowingPreferenceFragment extends PreferenceFragmentCompat {
 
     // TODO (3) Make sure to register and unregister this as a Shared Preference Change listener, in
     // onCreate and onDestroy.
+
+
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        getPreferenceScreen().getSharedPreferences()
+                .registerOnSharedPreferenceChangeListener(this);
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        getPreferenceScreen().getSharedPreferences()
+                .unregisterOnSharedPreferenceChangeListener(this);
+    }
+
+    @Override
+    public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+        Log.d(LOG_TAG,"LLAMO PREFERENCE CHANGED");
+        Preference preference = findPreference(key);
+        if (null != preference) {
+            if (preference instanceof SwitchPreferenceCompat) {
+                String instructorKey = preference.getKey();
+                boolean value = sharedPreferences.getBoolean(instructorKey, false);
+                changeTopicState(instructorKey, value);
+            }
+        }
+    }
+
+    /**
+     * Change the state of the instructor topic
+     */
+    private void changeTopicState(String instructorKey, boolean value) {
+        Log.d(LOG_TAG,"LLEGO A CHANGE STATE");
+        if (value) {
+            FirebaseMessaging.getInstance().subscribeToTopic(instructorKey);
+            Log.d(LOG_TAG,"LLEGO A CHANGE STATE TRUE - "+instructorKey);
+        } else {
+            FirebaseMessaging.getInstance().unsubscribeFromTopic(instructorKey);
+            Log.d(LOG_TAG,"LLEGO A CHANGE STATE FALSE - "+instructorKey);
+        }
+    }
+
 
 }
